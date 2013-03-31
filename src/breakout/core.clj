@@ -1,20 +1,24 @@
 (ns breakout.core
     (:import (org.lwjgl LWJGLException)
-     (org.lwjgl.opengl Display DisplayMode GL11)))
+     (org.lwjgl.opengl Display DisplayMode GL11)
+     (org.lwjgl.input Keyboard)))
 
 (def world-size [8 5])
 (def screen-size [800 600])
 
 (def PI 3.14159)
-(def -PI 3.14159)
+(def -PI -3.14159)
 
-(defrecord World [bricks ball player running])
+(defrecord World [bricks ball paddle running])
 (defrecord Brick [colour destroyed])
-(defrecord Player [position velocity])
+(defrecord Paddle [position velocity])
 (defrecord Ball [position velocity])
 
-(defn init-player []
-  (->Player [350 580] [0 0]))
+(def boundaries
+     [])
+
+(defn init-paddle []
+  (->Paddle [350 580] [0 0]))
 
 (defn init-ball []
   (->Ball [400 400] [-1 1]))
@@ -47,7 +51,7 @@
     (GL11/glEnd)))
 
 (defn random-world []
-   (->World (random-bricks) (init-ball) (init-player) true))
+   (->World (random-bricks) (init-ball) (init-paddle) true))
 
 (defn draw-world [world]
   (let [[x y] world-size
@@ -59,9 +63,9 @@
         (draw-brick (nth (nth (:bricks world) row) col)
                     [(* col bx) (* row by)])))))
 
-(defn draw-player [player]
-  (let [[x y] (:position player)
-        [dx dy] (:velocity player)]
+(defn draw-paddle [paddle]
+  (let [[x y] (:position paddle)
+        [dx dy] (:velocity paddle)]
     (GL11/glColor3f 1.0 0.0 0.0)
 
     (GL11/glBegin GL11/GL_QUADS)
@@ -77,12 +81,9 @@
         s 100
         ss (/ (* PI 2) s)]
     (GL11/glColor3f 1.0 0.0 0.0)
-
     (GL11/glBegin GL11/GL_POLYGON)
-
     (doseq [i (filter (fn [x] (>= x -PI)) (map (fn [y] (- PI (* y ss))) (take s (range))))]
       (GL11/glVertex2f (+ x (* (Math/cos i) r)) (+ y (* (Math/sin i) r))))
-    
     (GL11/glEnd)))
 
 (defn init []
@@ -97,23 +98,60 @@
     (GL11/glMatrixMode GL11/GL_MODELVIEW))
   (random-world))
 
-
 (defn draw [world]
   (GL11/glClear GL11/GL_COLOR_BUFFER_BIT)
-  (let [player (:player world)
+  (let [paddle (:paddle world)
         ball (:ball world)]
     (draw-world world)
     (draw-ball ball)
-    (draw-player player))
+    (draw-paddle paddle))
   (Display/update)
   (Display/sync 60))
+
+(defn vadd [v1 v2]
+  (let [[a b] v1
+        [c d] v2]
+    [(+ a c) (+ b d)]))
+
+(defn update-input [state]
+  (let [paddle (:paddle state) ]
+    (cond (Keyboard/isKeyDown (Keyboard/KEY_LEFT))
+              (assoc-in state [:paddle :velocity] [-1 0])
+          (Keyboard/isKeyDown (Keyboard/KEY_RIGHT))
+              (assoc-in state [:paddle :velocity] [1 0])
+          (Keyboard/isKeyDown (Keyboard/KEY_ESCAPE))
+              (assoc-in state [:running] false)
+          true state))) 
+
+(defn reset-velocity [state kw]
+  (assoc-in state [kw :velocity] [0 0]))
+
+(defn update-paddle [state]
+  (let [paddle (:paddle state)
+        position (vadd (:position paddle) (:velocity paddle))]
+    (reset-velocity (assoc-in state [:paddle :position] position) :paddle)))
+
+(defn update-ball [state]
+  (let [ball (:ball state)
+        position (vadd (:position ball) (:velocity ball))]
+    (assoc-in state [:ball :position] position)))
+
+(defn update-bricks [state]
+  state)
+
+(defn update [world]
+  (-> world
+      (update-input)
+      (update-paddle)
+      (update-ball)
+      (update-bricks)))
 
 (defn render-loop [w]
   (loop [world w]
         (when (and (:running world)
                    (not (Display/isCloseRequested)))
           (draw world)
-          (recur world))))
+          (recur (update world)))))
 
 (defn finalise []
   (Display/destroy))
