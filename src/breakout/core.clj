@@ -14,9 +14,6 @@
 (defrecord Paddle [position velocity])
 (defrecord Ball [position velocity])
 
-(def boundaries
-     [])
-
 (defn init-paddle []
   (->Paddle [350 580] [0 0]))
 
@@ -113,12 +110,24 @@
         [c d] v2]
     [(+ a c) (+ b d)]))
 
+(defn vmin [[x1 y1 :as v1] [x2 y2 :as v2]]
+  (if (and (<= x1 x2)
+           (<= y1 y2))
+    v1
+    v2))
+
+(defn vmax [[x1 y1 :as v1] [x2 y2 :as v2]]
+  (if (and (>= x1 x2)
+           (>= y1 y2))
+    v1
+    v2))
+
 (defn update-input [state]
   (let [paddle (:paddle state) ]
     (cond (Keyboard/isKeyDown (Keyboard/KEY_LEFT))
-              (assoc-in state [:paddle :velocity] [-1 0])
+              (assoc-in state [:paddle :velocity] [-4 0])
           (Keyboard/isKeyDown (Keyboard/KEY_RIGHT))
-              (assoc-in state [:paddle :velocity] [1 0])
+              (assoc-in state [:paddle :velocity] [4 0])
           (Keyboard/isKeyDown (Keyboard/KEY_ESCAPE))
               (assoc-in state [:running] false)
           true state))) 
@@ -128,20 +137,41 @@
 
 (defn update-paddle [state]
   (let [paddle (:paddle state)
-        position (vadd (:position paddle) (:velocity paddle))]
+        position (vmax [0 580] (vmin [700 580] (vadd (:position paddle) (:velocity paddle))))]
     (reset-velocity (assoc-in state [:paddle :position] position) :paddle)))
+
+(defn reflect-ball [ball]
+  (let [[x y] (:position ball)
+        [vx vy] (:velocity ball)]
+    (cond (<= x 0)
+          (assoc ball :velocity [(- vx) vy])
+          (>= x 800)
+          (assoc ball :velocity [(- vx) vy])
+          (<= y 0)
+          (assoc ball :velocity [vx (- vy)])
+          (>= y 600)
+          (assoc ball :velocity [vx (- vy)])
+          true
+          ball)))
 
 (defn update-ball [state]
   (let [ball (:ball state)
-        position (vadd (:position ball) (:velocity ball))]
-    (assoc-in state [:ball :position] position)))
+        position (vadd (:position ball) (:velocity ball))
+        ball (assoc ball :position position)]
+    (->> ball
+         reflect-ball
+         (assoc state :ball ,,,))))
 
 (defn update-bricks [state]
+  state)
+
+(defn update-physics [state]
   state)
 
 (defn update [world]
   (-> world
       (update-input)
+      (update-physics)
       (update-paddle)
       (update-ball)
       (update-bricks)))
