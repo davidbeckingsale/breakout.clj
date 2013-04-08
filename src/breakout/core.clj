@@ -10,7 +10,7 @@
 (def -PI -3.14159)
 
 (defrecord World [bricks ball paddle running])
-(defrecord Brick [colour destroyed])
+(defrecord Brick [position colour destroyed])
 (defrecord Paddle [position velocity])
 (defrecord Ball [position velocity])
 
@@ -21,22 +21,30 @@
   (->Ball [400 400] [-1 1]))
 
 (def bricks
-  {:red (->Brick [1.0 0.0 0.0] nil)
-   :green (->Brick [0.0 1.0 0.0] nil)
-   :blue (->Brick [0.0 0.0 1.0] nil)
-   :orange (->Brick [1.0 0.5 0.0] nil)
-   :purple (->Brick [1.0 0.0 1.0] nil)
-   :violet (->Brick [0.0 1.0 1.0] nil)})
+  [(->Brick nil [1.0 0.0 0.0] nil)    ; red
+   (->Brick nil [0.0 1.0 0.0] nil)    ; green
+   (->Brick nil [0.0 0.0 1.0] nil)    ; blue
+   (->Brick nil [1.0 0.5 0.0] nil)    ; orange
+   (->Brick nil [1.0 0.0 1.0] nil)    ; purple
+   (->Brick nil [0.0 1.0 1.0] nil)])  ; violet
 
 (defn random-bricks []
-  (let [[cols rows] world-size]
-    (letfn [(random-brick [] (bricks (rand-nth [:red :green :blue :orange :purple :violet])))
-            (random-row [] (vec (repeatedly cols random-brick)))]
-      (vec (repeatedly rows random-row)))))
+  (let [[cols rows] world-size
+        [bx by] [100 60]]
+    ;    (letfn [(random-brick [] (bricks (rand-nth [:red :green :blue :orange :purple :violet])))
+    ;            (random-row [] (vec (repeatedly cols random-brick)))]
+    ;      (vec (repeatedly rows random-row)))))
+    (for [row (range 0 rows)]
+      (for [col (range 0 cols)]
+        (let [x (* bx col)
+              y (* by row)]
+          (assoc (rand-nth bricks) :position [x y]))))))
 
-(defn draw-brick [brick location]
+
+
+(defn draw-brick [brick]
   (let [[screen-x screen-y] screen-size
-        [x y] location
+        [x y] (:position brick)
         [r g b] (:colour brick)]
     (GL11/glColor3f r g b)
 
@@ -50,16 +58,12 @@
 (defn random-world []
   (->World (random-bricks) (init-ball) (init-paddle) true))
 
+(defn draw-row [row]
+  (doall (map draw-brick row)))
+
 (defn draw-world [world]
-  (let [[x y] world-size
-        [gx gy] screen-size
-        bx 100
-        by 60]
-    (doseq [row (range 0 y)]
-      (doseq [col (range 0 x)]
-        (if (not (:destroyed (nth (nth (:bricks world) row) col)))
-          (draw-brick (nth (nth (:bricks world) row) col)
-                    [(* col bx) (* row by)]))))))
+  (let [bricks (:bricks world)]
+    (doall (map draw-row bricks))))
 
 (defn draw-paddle [paddle]
   (let [[x y] (:position paddle)
@@ -171,17 +175,17 @@
 (defn get-brick [bricks x y]
   (get-in bricks [y x]))
 
-(defn reflect-ball-bricks [state]
-  (let [bricks (:bricks state)
-        ball (:ball state)
-        [bx by] (:position ball)
-        [vx vy] (:velocity ball)]
-    (doseq [row (range (count bricks))]
-      (doseq [col (range (count (first bricks)))]
-          (if (collision? ball get-brick? state)
-            ;update with destroyed brick
-            ;update with normal brick
-            )))))
+;(defn reflect-ball-bricks [state]
+;  (let [bricks (:bricks state)
+;        ball (:ball state)
+;        [bx by] (:position ball)
+;        [vx vy] (:velocity ball)]
+;    (doseq [row (range (count bricks))]
+;      (doseq [col (range (count (first bricks)))]
+;          (if (collision? ball get-brick? state)
+;            ;update with destroyed brick
+;            ;update with normal brick
+;            )))))
 
 (defn update-ball [state]
   (let [ball (:ball state)
@@ -196,8 +200,7 @@
   state
   (->> state
        reflect-ball-boundaries
-       reflect-ball-paddle
-       reflect-ball-bricks))
+       reflect-ball-paddle))
 
 (defn update [world]
   (-> world
