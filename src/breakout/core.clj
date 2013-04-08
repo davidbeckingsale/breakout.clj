@@ -1,7 +1,7 @@
 (ns breakout.core
-    (:import (org.lwjgl LWJGLException)
-     (org.lwjgl.opengl Display DisplayMode GL11)
-     (org.lwjgl.input Keyboard)))
+  (:import (org.lwjgl LWJGLException)
+           (org.lwjgl.opengl Display DisplayMode GL11)
+           (org.lwjgl.input Keyboard)))
 
 (def world-size [8 5])
 (def screen-size [800 600])
@@ -21,18 +21,18 @@
   (->Ball [400 400] [-1 1]))
 
 (def bricks
-     {:red (->Brick [1.0 0.0 0.0] nil)
-     :green (->Brick [0.0 1.0 0.0] nil)
-     :blue (->Brick [0.0 0.0 1.0] nil)
-     :orange (->Brick [1.0 0.5 0.0] nil)
-     :purple (->Brick [1.0 0.0 1.0] nil)
-     :violet (->Brick [0.0 1.0 1.0] nil)})
+  {:red (->Brick [1.0 0.0 0.0] nil)
+   :green (->Brick [0.0 1.0 0.0] nil)
+   :blue (->Brick [0.0 0.0 1.0] nil)
+   :orange (->Brick [1.0 0.5 0.0] nil)
+   :purple (->Brick [1.0 0.0 1.0] nil)
+   :violet (->Brick [0.0 1.0 1.0] nil)})
 
 (defn random-bricks []
   (let [[cols rows] world-size]
     (letfn [(random-brick [] (bricks (rand-nth [:red :green :blue :orange :purple :violet])))
             (random-row [] (vec (repeatedly cols random-brick)))]
-           (vec (repeatedly rows random-row)))))
+      (vec (repeatedly rows random-row)))))
 
 (defn draw-brick [brick location]
   (let [[screen-x screen-y] screen-size
@@ -48,7 +48,7 @@
     (GL11/glEnd)))
 
 (defn random-world []
-   (->World (random-bricks) (init-ball) (init-paddle) true))
+  (->World (random-bricks) (init-ball) (init-paddle) true))
 
 (defn draw-world [world]
   (let [[x y] world-size
@@ -57,8 +57,9 @@
         by 60]
     (doseq [row (range 0 y)]
       (doseq [col (range 0 x)]
-        (draw-brick (nth (nth (:bricks world) row) col)
-                    [(* col bx) (* row by)])))))
+        (if (not (:destroyed (nth (nth (:bricks world) row) col)))
+          (draw-brick (nth (nth (:bricks world) row) col)
+                    [(* col bx) (* row by)]))))))
 
 (defn draw-paddle [paddle]
   (let [[x y] (:position paddle)
@@ -125,11 +126,11 @@
 (defn update-input [state]
   (let [paddle (:paddle state) ]
     (cond (Keyboard/isKeyDown (Keyboard/KEY_LEFT))
-              (assoc-in state [:paddle :velocity] [-4 0])
+          (assoc-in state [:paddle :velocity] [-4 0])
           (Keyboard/isKeyDown (Keyboard/KEY_RIGHT))
-              (assoc-in state [:paddle :velocity] [4 0])
+          (assoc-in state [:paddle :velocity] [4 0])
           (Keyboard/isKeyDown (Keyboard/KEY_ESCAPE))
-              (assoc-in state [:running] false)
+          (assoc-in state [:running] false)
           true state))) 
 
 (defn reset-velocity [state kw]
@@ -140,33 +141,63 @@
         position (vmax [0 580] (vmin [700 580] (vadd (:position paddle) (:velocity paddle))))]
     (reset-velocity (assoc-in state [:paddle :position] position) :paddle)))
 
-(defn reflect-ball [ball]
-  (let [[x y] (:position ball)
+(defn reflect-ball-boundaries [state]
+  (let [ball (:ball state)
+        [x y] (:position ball)
         [vx vy] (:velocity ball)]
     (cond (<= x 0)
-          (assoc ball :velocity [(- vx) vy])
+          (assoc state :ball (assoc ball :velocity [(- vx) vy]))
           (>= x 800)
-          (assoc ball :velocity [(- vx) vy])
+          (assoc state :ball (assoc ball :velocity [(- vx) vy]))
           (<= y 0)
-          (assoc ball :velocity [vx (- vy)])
+          (assoc state :ball (assoc ball :velocity [vx (- vy)]))
           (>= y 600)
-          (assoc ball :velocity [vx (- vy)])
-          true
-          ball)))
+          (assoc state :ball (assoc ball :velocity [vx (- vy)]))
+          :else
+          state)))
+
+(defn reflect-ball-paddle [state]
+  (let [paddle (:paddle state)
+        [px py] (:position paddle)
+        ball (:ball state)
+        [bx by] (:position ball)
+        [vx vy] (:velocity ball)]
+    (if (and (>= by py)
+             (>= bx px)
+             (<= bx (+ 100 px)))
+      (assoc state :ball (assoc ball :velocity [vx (- vy)]))
+      state)))
+
+(defn get-brick [bricks x y]
+  (get-in bricks [y x]))
+
+(defn reflect-ball-bricks [state]
+  (let [bricks (:bricks state)
+        ball (:ball state)
+        [bx by] (:position ball)
+        [vx vy] (:velocity ball)]
+    (doseq [row (range (count bricks))]
+      (doseq [col (range (count (first bricks)))]
+          (if (collision? ball get-brick? state)
+            ;update with destroyed brick
+            ;update with normal brick
+            )))))
 
 (defn update-ball [state]
   (let [ball (:ball state)
         position (vadd (:position ball) (:velocity ball))
         ball (assoc ball :position position)]
-    (->> ball
-         reflect-ball
-         (assoc state :ball ,,,))))
+    (assoc state :ball ball)))
 
 (defn update-bricks [state]
   state)
 
 (defn update-physics [state]
-  state)
+  state
+  (->> state
+       reflect-ball-boundaries
+       reflect-ball-paddle
+       reflect-ball-bricks))
 
 (defn update [world]
   (-> world
@@ -178,10 +209,10 @@
 
 (defn render-loop [w]
   (loop [world w]
-        (when (and (:running world)
-                   (not (Display/isCloseRequested)))
-          (draw world)
-          (recur (update world)))))
+    (when (and (:running world)
+               (not (Display/isCloseRequested)))
+      (draw world)
+      (recur (update world)))))
 
 (defn finalise []
   (Display/destroy))
