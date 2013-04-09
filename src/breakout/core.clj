@@ -31,9 +31,6 @@
 (defn random-bricks []
   (let [[cols rows] world-size
         [bx by] [100 60]]
-    ;    (letfn [(random-brick [] (bricks (rand-nth [:red :green :blue :orange :purple :violet])))
-    ;            (random-row [] (vec (repeatedly cols random-brick)))]
-    ;      (vec (repeatedly rows random-row)))))
     (for [row (range 0 rows)]
       (for [col (range 0 cols)]
         (let [x (* bx col)
@@ -46,14 +43,14 @@
   (let [[screen-x screen-y] screen-size
         [x y] (:position brick)
         [r g b] (:colour brick)]
-    (GL11/glColor3f r g b)
-
-    (GL11/glBegin GL11/GL_QUADS)
-    (GL11/glVertex2f x y)
-    (GL11/glVertex2f (+ x 100) y)
-    (GL11/glVertex2f (+ x 100) (+ y 60))
-    (GL11/glVertex2f x (+ y 60))
-    (GL11/glEnd)))
+    (if-not (:destroyed brick)
+      (do (GL11/glColor3f r g b)
+          (GL11/glBegin GL11/GL_QUADS)
+          (GL11/glVertex2f x y)
+          (GL11/glVertex2f (+ x 100) y)
+          (GL11/glVertex2f (+ x 100) (+ y 60))
+          (GL11/glVertex2f x (+ y 60))
+          (GL11/glEnd)))))
 
 (defn random-world []
   (->World (random-bricks) (init-ball) (init-paddle) true))
@@ -172,20 +169,25 @@
       (assoc state :ball (assoc ball :velocity [vx (- vy)]))
       state)))
 
-(defn get-brick [bricks x y]
-  (get-in bricks [y x]))
+(defn intersect-ball-brick [ball brick]
+  (let [[x y] (:position ball)
+        [bx by] (:position brick)]
+    (if (and (>= x bx) (<= x (+ bx 100)))
+      (do (assoc brick :destroyed true)
+      brick)))
 
-;(defn reflect-ball-bricks [state]
-;  (let [bricks (:bricks state)
-;        ball (:ball state)
-;        [bx by] (:position ball)
-;        [vx vy] (:velocity ball)]
-;    (doseq [row (range (count bricks))]
-;      (doseq [col (range (count (first bricks)))]
-;          (if (collision? ball get-brick? state)
-;            ;update with destroyed brick
-;            ;update with normal brick
-;            )))))
+(defn intersect-ball-row [ball row]
+  (let [[x y] (:position ball)
+        [_ by] (:position (first row))]
+    (if (and (>= y by) (<= y (+ by 60)))
+      (doall (map #(intersect-ball-brick ball %) row))
+      row)))
+
+(defn reflect-ball-bricks [state]
+  (let [ball (:ball state)
+        bricks (:bricks state)]
+    (assoc state :bricks
+           (doall (map #(intersect-ball-row ball %) bricks)))))
 
 (defn update-ball [state]
   (let [ball (:ball state)
@@ -200,7 +202,8 @@
   state
   (->> state
        reflect-ball-boundaries
-       reflect-ball-paddle))
+       reflect-ball-paddle
+       reflect-ball-bricks))
 
 (defn update [world]
   (-> world
