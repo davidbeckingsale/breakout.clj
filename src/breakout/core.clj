@@ -18,7 +18,7 @@
   (->Paddle [350 580] [0 0]))
 
 (defn init-ball []
-  (->Ball [400 400] [-1 1]))
+  (->Ball [400 400] [-2 2]))
 
 (def bricks
   [(->Brick nil [1.0 0.0 0.0] nil)    ; red
@@ -173,21 +173,43 @@
   (let [[x y] (:position ball)
         [bx by] (:position brick)]
     (if (and (>= x bx) (<= x (+ bx 100)))
-      (do (assoc brick :destroyed true)
+      (do (assoc brick :destroyed true))
       brick)))
 
 (defn intersect-ball-row [ball row]
   (let [[x y] (:position ball)
         [_ by] (:position (first row))]
     (if (and (>= y by) (<= y (+ by 60)))
-      (doall (map #(intersect-ball-brick ball %) row))
+      (map #(intersect-ball-brick ball %) row)
       row)))
 
 (defn reflect-ball-bricks [state]
   (let [ball (:ball state)
         bricks (:bricks state)]
     (assoc state :bricks
-           (doall (map #(intersect-ball-row ball %) bricks)))))
+           (map #(intersect-ball-row ball %) bricks))))
+
+(defn bounce-ball-brick [ball brick]
+  (let [[x y] (:position ball)
+        [vx vy] (:velocity ball)
+        [bx by] (:position brick)]
+    (if (and (>= x bx)
+             (<= x (+ bx 100))
+             (not (:destroyed brick)))
+      (assoc ball :velocity [vx (- vy)])
+      ball)))
+
+(defn bounce-ball-row [ball row]
+  (let [[x y] (:position ball)
+        [_ by] (:position (first row))]
+    (if (and (>= y by) (<= y (+ by 60)))
+      (reduce bounce-ball-brick ball row)
+      ball)))
+
+(defn bounce-ball-bricks [state]
+  (let [ball (:ball state)
+        bricks (:bricks state)]
+    (assoc state :ball (reduce bounce-ball-row ball bricks))))
 
 (defn update-ball [state]
   (let [ball (:ball state)
@@ -203,6 +225,7 @@
   (->> state
        reflect-ball-boundaries
        reflect-ball-paddle
+       bounce-ball-bricks
        reflect-ball-bricks))
 
 (defn update [world]
