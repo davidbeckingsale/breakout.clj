@@ -1,17 +1,33 @@
 (ns breakout.lib.physics
-  (require [clojure.math.numeric-tower :as math])
-  (use [breakout.lib.core :only (all-e !)]))
+  (:require [clojure.math.numeric-tower :as math])
+  (:use [breakout.lib.core :only (all-e !)]
+        [breakout.lib.macros :only (component)]))
 
-(defn sat? [[amin amax :as a] [bmin bmax :as b]]
-  (cond (< (second amax) (second bmin))
+(component simulate [p]
+           :properties p)
+
+(defn aabb [e]
+  (let [position (:position e)
+        size (:size e)]
+    {:min position 
+     :max (merge-with + position size)})) 
+
+(defn sat? [a b]
+  (let [abox (aabb a)
+        bbox (aabb b) 
+        amin (:min abox)
+        amax (:max abox)
+        bmin (:min bbox)
+        bmax (:max bbox)]
+  (cond (< (:y amax) (:y bmin))
         false
-        (> (second amin) (second bmax))
+        (> (:y amin) (:y bmax))
         false
-        (> (first amin) (first bmax))
+        (> (:x amin) (:x bmax))
         false
-        (< (first amax) (first bmin))
+        (< (:x amax) (:x bmin))
         false
-        :else true))
+        :else true)))
 
 (defn normal [a b]
   (let [amin (:position a)
@@ -45,9 +61,8 @@
         bvel (get b :velocity)
         vel {:x (- (:x bvel) (:x avel)) :y (- (:y bvel) (:y avel))}
         nvel (+ (* (:x n) (:x vel)) (* (:y n) (:y vel)))
-        amass (get-in a [:body :mass])
-        bmass (get-in b [:body :mass])]
-    ; (println (str "Normal is: " n))
+        amass (get-in a [:simulate :properties :mass])
+        bmass (get-in b [:simulate :properties :mass])]
     (if-not (> nvel 0)
       (let [j (* (- 2) nvel)
             j (if (and (= amass 0)
@@ -56,29 +71,24 @@
                 (/ j (+ amass bmass)))
             impulse {:x (* (:x n) j) :y (* (:y n) j)}]
         (! a [:velocity] {:x (- (:x avel) (* amass (:x impulse))) :y (- (:y avel) (* amass (:y impulse)))})
-        (! b [:velocity] {:x (+ (:x bvel) (* bmass (:x impulse))) :y (+ (:y bvel) (* bmass (:y impulse)))}))))) 
+        (! b [:velocity] {:x (+ (:x bvel) (* bmass (:x impulse))) :y (+ (:y bvel) (* bmass (:y impulse)))})
+        (if (get-in b [:simulate :properties :fragile] false)
+           (! b [:destroyed? :destroyed] true)))))) 
 
-(defn simulate [ents]
-  (doseq [a ents]
-    (let [[x y :as amin] [(get-in a [:position :x]) (get-in a [:position :y])]
-          [x' y' :as amax] [(+ (get-in a [:size :x]) x)
-                            (+ (get-in a [:size :y]) y)]]
-      (doseq [b (filter (fn [x] (or (not= (get a :id) (get x :id)) 
-                                    (not (get a :destroyed false)))) ents)]
-        (let [[xb yb :as bmin] [(get-in b [:position :x]) (get-in b [:position :y])]
-              [xb' yb' :as bmax] [(+ (get-in b [:size :x]) xb)
-                                  (+ (get-in b [:size :y]) yb)]]
-             (if (sat? [amin amax] [bmin bmax])
-               (resolution a b)))))))
+(defn sweep [ents]
+  (doseq [a (filter (fn [x] (not (get-in x [:simulate :properties :static] false))) ents)]
+    (doseq [b (filter (fn [x] (and (not= (get a :id) (get x :id))
+                                  (not (get-in x [:destroyed? :destroyed] false)))) ents)]
+      (if (sat? a b)
+        (resolution a b)))))
 
 (defn reposition [ents]
   (doseq [e ents]
-    (let [[x y] [(get-in e [:position :x]) (get-in e [:position :y])]
-          [vx vy] [(get-in e [:velocity :x]) (get-in e [:velocity :y])]
-          [x' y'] [(+ x vx) (+ y vy)]]
-      (! e [:position :x] x')
-      (! e [:position :y] y'))))
+    (let [pos (:position e)
+          vel (:velocity e)
+          npos (merge-with + pos vel)]
+      (! e [:position] npos))))
 
 (defn step []
-  (simulate (all-e :body))
+  (sweep (all-e :simulate))
   (reposition (all-e :velocity)))

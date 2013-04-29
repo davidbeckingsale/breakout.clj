@@ -37,5 +37,3 @@
 (component size [x y]
            :x x
            :y y)
-
-(component body [m] :mass m)
