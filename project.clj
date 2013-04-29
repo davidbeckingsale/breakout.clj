@@ -4,7 +4,8 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.4.0"]
-                 [org.lwjgl.lwjgl/lwjgl "2.8.5"]]
+                 [org.lwjgl.lwjgl/lwjgl "2.8.5"]
+                 [org.clojure/math.numeric-tower "0.0.2"]]
   :jvm-opts [~(str "-Djava.library.path=native/:"
                    (System/getProperty "java.library.path"))]
   :main breakout.core)
