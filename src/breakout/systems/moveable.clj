@@ -1,14 +1,6 @@
-(ns breakout.systems.moveable
-  (:import (org.lwjgl.input Keyboard))
-  (use [breakout.lib.core :only (!)]))
-
-(def keymap 
-  {:left Keyboard/KEY_LEFT
-   :right Keyboard/KEY_RIGHT
-   :escape Keyboard/KEY_ESCAPE})
-
-(defn key? [code]
-  (Keyboard/isKeyDown (get keymap code)))
+(ns breakout.systems.moveable 
+  (use [breakout.lib.core :only (!)]
+       [breakout.lib.input :only (key?)]))
 
 (defn keyboard [ents]
   (doseq [e ents]
