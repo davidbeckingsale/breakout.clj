@@ -15,6 +15,9 @@
            :x x
            :y y)
 
+(component state [s]
+           :state s)
+
 (component velocity [x y]
            :x x
            :y y)

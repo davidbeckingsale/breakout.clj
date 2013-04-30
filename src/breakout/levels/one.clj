@@ -8,7 +8,7 @@
   ; ball
   (add (merge (position 400 500)
               (size 10 10)
-              (velocity -2 2)
+              (velocity -3 3)
               (colour :red)
               (phys/simulate {:mass 1})
               (renderable render-ball)))
