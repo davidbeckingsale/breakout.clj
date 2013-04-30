@@ -63,7 +63,7 @@
         nvel (+ (* (:x n) (:x vel)) (* (:y n) (:y vel)))
         amass (get-in a [:simulate :properties :mass])
         bmass (get-in b [:simulate :properties :mass])]
-    (if-not (> nvel 0)
+    (if-not (>= nvel 0)
       (let [j (* (- 2) nvel)
             j (if (and (= amass 0)
                        (= bmass 0))
@@ -71,7 +71,6 @@
                 (/ j (+ amass bmass)))
             impulse {:x (* (:x n) j) :y (* (:y n) j)}]
         (! a [:velocity] {:x (- (:x avel) (* amass (:x impulse))) :y (- (:y avel) (* amass (:y impulse)))})
-        (! b [:velocity] {:x (+ (:x bvel) (* bmass (:x impulse))) :y (+ (:y bvel) (* bmass (:y impulse)))})
         (if (get-in b [:simulate :properties :fragile] false)
            (! b [:destroyed? :destroyed] true)))))) 
 
