@@ -72,7 +72,10 @@
             impulse {:x (* (:x n) j) :y (* (:y n) j)}]
         (! a [:velocity] {:x (- (:x avel) (* amass (:x impulse))) :y (- (:y avel) (* amass (:y impulse)))})
         (if (get-in b [:simulate :properties :fragile] false)
-           (! b [:destroyed? :destroyed] true)))))) 
+          (! b [:destroyed? :destroyed] true))
+        (if (and (get a :paddle-actions false)
+                 (get-in b [:simulate :properties :static] false))
+          (! a [:velocity]  {:x 0 :y 0}))))))
 
 (defn sweep [ents]
   (doseq [a (filter (fn [x] (not (get-in x [:simulate :properties :static] false))) ents)]
