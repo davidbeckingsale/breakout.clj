@@ -29,11 +29,10 @@
   "I don't do a whole lot."
   [& args]
   (init)
-  (while (not= (first (all-e :state)) :quit)
-    (println (first (all-e :state)))
-    (one/level)
+  (one/level)
+  (while (not= (get-in (first (all-e :state)) [:state :state]) :exit)
     (while (and (not (Display/isCloseRequested))
-                (= (:state (first (all-e :state))) :running))
+                (= (get-in (first (all-e :state)) [:state :state]) :running))
       (GL11/glClear (GL11/GL_COLOR_BUFFER_BIT))
       (camera/renderer (all-e :renderable))
       (ui/keyboard (all-e :state))
