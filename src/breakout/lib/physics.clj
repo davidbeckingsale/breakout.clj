@@ -1,7 +1,7 @@
 (ns breakout.lib.physics
   (:require [clojure.math.numeric-tower :as math])
-  (:use [breakout.lib.core :only (all-e !)]
-        [breakout.lib.macros :only (component)]))
+  (:use [breakout.lib.core :only (all-e)]
+        [breakout.lib.macros :only (component ? !)]))
 
 (component simulate [p]
            :properties p)
@@ -32,17 +32,17 @@
 (defn normal [a b]
   (let [amin (:position a)
         bmin (:position b)
-        apos {:x (+ (:x amin) (/ (get-in a [:size :x]) 2))
-              :y (+ (:y amin) (/ (get-in a [:size :y]) 2))}
-        bpos {:x (+ (:x bmin) (/ (get-in b [:size :x]) 2))
-              :y (+ (:y bmin) (/ (get-in b [:size :y]) 2))}
+        apos {:x (+ (:x amin) (/ (? a :size :x) 2))
+              :y (+ (:y amin) (/ (? a :size :y) 2))}
+        bpos {:x (+ (:x bmin) (/ (? b :size :x) 2))
+              :y (+ (:y bmin) (/ (? b :size :y) 2))}
         n {:x (- (:x bpos) (:x apos)) :y (- (:y bpos) (:y apos))}
-        exa (/ (get-in a [:size :x]) 2)
-        exb (/ (get-in b [:size :x]) 2)
+        exa (/ (? a :size :x) 2)
+        exb (/ (? b :size :x) 2)
         xoverlap (- (+ exa exb) (math/abs (:x n)))]
     (if (> xoverlap 0)
-      (let [exa (/ (get-in a [:size :y]) 2)
-            exb (/ (get-in b [:size :y]) 2)
+      (let [exa (/ (? a :size :y) 2)
+            exb (/ (? b :size :y) 2)
             yoverlap (- (+ exa exb) (math/abs (:y n)))]
         (if (> yoverlap 0)
           (if (< xoverlap yoverlap)
@@ -57,12 +57,12 @@
 
 (defn resolution [a b]
   (let [n (normal a b)
-        avel (get a :velocity)
-        bvel (get b :velocity)
+        avel (:velocity a)
+        bvel (:velocity b)
         vel {:x (- (:x bvel) (:x avel)) :y (- (:y bvel) (:y avel))}
         nvel (+ (* (:x n) (:x vel)) (* (:y n) (:y vel)))
-        amass (get-in a [:simulate :properties :mass])
-        bmass (get-in b [:simulate :properties :mass])]
+        amass (? a :simulate :properties :mass)
+        bmass (? b :simulate :properties :mass)]
     (if-not (>= nvel 0)
       (let [j (* (- 2) nvel)
             j (if (and (= amass 0)
@@ -70,17 +70,16 @@
                 0
                 (/ j (+ amass bmass)))
             impulse {:x (* (:x n) j) :y (* (:y n) j)}]
-        (! a [:velocity] {:x (- (:x avel) (* amass (:x impulse))) :y (- (:y avel) (* amass (:y impulse)))})
-        (if (get-in b [:simulate :properties :fragile] false)
-          (! b [:destroyed? :destroyed] true))
-        (if (and (get a :paddle-actions false)
-                 (get-in b [:simulate :properties :static] false))
-          (! a [:velocity]  {:x 0 :y 0}))))))
+        (! a :velocity {:x (- (:x avel) (* amass (:x impulse))) :y (- (:y avel) (* amass (:y impulse)))})
+        (if (? b :simulate :properties :fragile)
+          (! b :destroyed? {:destroyed true}))
+        (if (and (? a :paddle-actions)
+                 (? b :simulate :properties :static))
+          (! a :velocity {:x 0 :y 0}))))))
 
 (defn sweep [ents]
-  (doseq [a (filter (fn [x] (not (get-in x [:simulate :properties :static] false))) ents)]
-    (doseq [b (filter (fn [x] (and (not= (get a :id) (get x :id))
-                                  (not (get-in x [:destroyed? :destroyed] false)))) ents)]
+  (doseq [a (filter (fn [x] (not (? x :simulate :properties :static))) ents)]
+    (doseq [b (filter (fn [x] (not= (:id a) (:id x))) ents)]
       (if (sat? a b)
         (resolution a b)))))
 
@@ -89,7 +88,7 @@
     (let [pos (:position e)
           vel (:velocity e)
           npos (merge-with + pos vel)]
-      (! e [:position] npos))))
+      (! e :position npos))))
 
 (defn step []
   (sweep (all-e :simulate))

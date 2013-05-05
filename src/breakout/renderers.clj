@@ -20,16 +20,14 @@
         y (get-in ent [:position :y])
         dx (get-in ent [:size :x])
         dy (get-in ent [:size :y])
-        [r g b] (get-in ent [:colour :rgb])
-        destroyed? (get-in ent [:destroyed? :destroyed])]
-    (if-not destroyed?
-      (do (GL11/glColor3f r g b)
-          (GL11/glBegin GL11/GL_QUADS)
-          (GL11/glVertex2f x y)
-          (GL11/glVertex2f (+ x dx) y)
-          (GL11/glVertex2f (+ x dx) (+ y dy))
-          (GL11/glVertex2f x (+ y dy))
-          (GL11/glEnd)))))
+        [r g b] (get-in ent [:colour :rgb]) ]
+    (GL11/glColor3f r g b)
+    (GL11/glBegin GL11/GL_QUADS)
+    (GL11/glVertex2f x y)
+    (GL11/glVertex2f (+ x dx) y)
+    (GL11/glVertex2f (+ x dx) (+ y dy))
+    (GL11/glVertex2f x (+ y dy))
+    (GL11/glEnd)))
 
 ; add wall renderer
 (defn render-wall [ent]

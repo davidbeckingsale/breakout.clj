@@ -15,8 +15,9 @@
            :x x
            :y y)
 
-(component state [s]
-           :state s)
+(component game [state score]
+           :state state
+           :score score)
 
 (component velocity [x y]
            :x x
