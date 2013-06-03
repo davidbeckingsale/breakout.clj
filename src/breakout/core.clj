@@ -1,16 +1,11 @@
 (ns breakout.core
   (:use [breakout.world :only (screen-size)]
-        [breakout.components :only (game)]
+        [breakout.components :only (game position renderable texture tag)]
         [breakout.levels.one :as level]
-        ; [breakout.levels.harry :as level]
-        ; [breakout.levels.test :as testlevel]
-        [breakout.systems.camera :as camera]
-        [breakout.lib.physics :as phys]
         [breakout.lib.core :only (all-e add get-e)]
         [breakout.lib.macros :only (?)])
-  (:require [breakout.systems.moveable :as move]
-            [breakout.systems.ui :as ui]
-            [breakout.systems.score :as score])
+  (:require [breakout.systems.states :as states]
+            [breakout.ui.menu :as menu])
   (:import (org.lwjgl.opengl Display DisplayMode GL11)))
 
 (defn init []
@@ -18,12 +13,17 @@
     (Display/setDisplayMode (DisplayMode. x y))
     (Display/setTitle "Breakout!")
     (Display/create)
-
+    (GL11/glEnable GL11/GL_TEXTURE_2D)
+    (GL11/glClearColor 0.0 0.0 0.0 0.0)
+    (GL11/glEnable GL11/GL_BLEND)
+    (GL11/glViewport 0 0 x y)
+    (GL11/glMatrixMode GL11/GL_MODELVIEW)
     (GL11/glMatrixMode GL11/GL_PROJECTION)
     (GL11/glLoadIdentity)
     (GL11/glOrtho 0 x y 0 1 -1)
     (GL11/glMatrixMode GL11/GL_MODELVIEW)
-    (add (game :running 0))))
+    (add (game :menu 0))))
+
 
 (defn finalise []
   (Display/destroy))
@@ -31,18 +31,15 @@
 (defn -main
   "I don't do a whole lot."
   [& args]
-  (let [game (init)]
-    (level/level)
-    (while (not= (? (get-e game) :game :state) :exit)
-      (while (and (not (Display/isCloseRequested))
-                  (= (? (get-e game) :game :state) :running))
-        (GL11/glClear (GL11/GL_COLOR_BUFFER_BIT))
-        (camera/renderer (all-e :renderable))
-        (ui/keyboard (all-e :game))
-        (move/keyboard (all-e :keyboard))
-        (move/move (all-e :paddle-actions))
-        (phys/step)
-        (score/update (all-e :destroyed?))
-        (Display/update)
-        (Display/sync 60)))
+  (let [g (init)]
+        (menu/menu)
+    (while (and (not (Display/isCloseRequested))
+                (not= (? (get-e g) :game :state) :exit))
+      (case (? (get-e g) :game :state)
+        :menu
+        (states/menu)
+      :running
+        (states/running)
+       :pause
+       (states/pause)))
     (finalise)))

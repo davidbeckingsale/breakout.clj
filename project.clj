@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.lwjgl.lwjgl/lwjgl "2.8.5"]
                  [org.clojure/math.numeric-tower "0.0.2"]]
+  :resource-paths ["lib/slick-util.jar"]
   :jvm-opts [~(str "-Djava.library.path=native/:"
                    (System/getProperty "java.library.path"))]
   :main breakout.core)

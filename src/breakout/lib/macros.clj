@@ -1,5 +1,5 @@
 (ns breakout.lib.macros
-  (:use [breakout.lib.core :only (cset)]))
+  (:use [breakout.lib.core :only (cset first-e)]))
 
 (defmacro component [name params & r]
   `(defn ~name ~params
@@ -7,3 +7,4 @@
 
 (defmacro ? [entity & components] `(get-in ~entity [~@components] false))
 (defmacro ! [entity k v] `(cset ~entity [~k] ~v))
+(defmacro !' [entity v & ks] `(cset ~entity [~@ks] ~v))

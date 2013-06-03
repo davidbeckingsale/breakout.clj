@@ -1,5 +1,8 @@
 (ns breakout.renderers
-  (:import (org.lwjgl.opengl Display GL11)))
+  (:import (org.lwjgl.opengl Display GL11)
+           (org.newdawn.slick Color)
+           (org.newdawn.slick.opengl Texture TextureLoader)
+           (org.newdawn.slick.util ResourceLoader)))
 
 (defn render-ball [ent]
   (let [x (get-in ent [:position :x])
@@ -57,3 +60,29 @@
     (GL11/glVertex2f (+ x dx) (+ y dy))
     (GL11/glVertex2f x (+ y dy))
     (GL11/glEnd)))
+
+(defn render-score [ent]
+  (let [x (get-in ent [:position :x])
+        y (get-in ent [:position :y])
+        ;score-string (get-in ent [:game :score])
+        texture (get-in ent [:texture :texture])]
+    (GL11/glBlendFunc GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA)
+    (. (Color/white) bind)
+    (. texture bind)
+      (GL11/glBegin GL11/GL_QUADS)
+      (GL11/glTexCoord2f 0 0)
+      (GL11/glVertex2f x y)
+      (GL11/glTexCoord2f 1 0)
+      (GL11/glVertex2f (+ x (. texture getTextureWidth)) y)
+      (GL11/glTexCoord2f 1 1)
+      (GL11/glVertex2f (+ x (. texture getTextureWidth)) (+ y (. texture getTextureHeight)))
+      (GL11/glTexCoord2f 0 1)
+      (GL11/glVertex2f x (+ y (. texture getTextureHeight)))
+      (GL11/glEnd)
+    (GL11/glBlendFunc GL11/GL_ONE GL11/GL_ZERO)))
+
+; (defn render-text [ent]
+;   (let [txt (get-in ent [:text :string])
+;         x (get-in ent [:position :x])
+;         y (get-in ent [:position :y])]
+

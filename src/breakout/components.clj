@@ -1,5 +1,7 @@
 (ns breakout.components
-  (:use [breakout.lib.macros :only (component)]))
+  (:use [breakout.lib.macros :only (component)])
+  (:import (org.newdawn.slick.opengl Texture TextureLoader)
+           (org.newdawn.slick.util ResourceLoader)))
 
 (def colours {:red [0.78 0.28 0.28]
               :orange [0.78 0.42 0.23]
@@ -41,3 +43,14 @@
 (component size [x y]
            :x x
            :y y)
+
+(component texture [uri]
+           :texture (TextureLoader/getTexture 
+                      "PNG" 
+                      (ResourceLoader/getResourceAsStream uri)))
+
+(component text [txt]
+           :string txt)
+
+(component tag [nm]
+           :tag nm)
