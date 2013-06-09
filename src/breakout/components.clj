@@ -17,9 +17,10 @@
            :x x
            :y y)
 
-(component game [state score]
+(component game [state score lives]
            :state state
-           :score score)
+           :score score
+           :lives lives)
 
 (component velocity [x y]
            :x x
@@ -34,7 +35,8 @@
 (component colour [c]
            :rgb (c colours))
 
-(component keyboard [])
+(component keyboard [f]
+           :fn f)
 
 (component paddle-actions []
            :move-left false
@@ -49,8 +51,9 @@
                       "PNG" 
                       (ResourceLoader/getResourceAsStream uri)))
 
-(component text [txt]
-           :string txt)
+(component text [txt s]
+           :string txt
+           :size s)
 
 (component tag [nm]
            :tag nm)

@@ -8,4 +8,4 @@
    :space Keyboard/KEY_SPACE})
 
 (defn key? [code]
-  (Keyboard/isKeyDown (get keymap code)))
+  (get keymap code))

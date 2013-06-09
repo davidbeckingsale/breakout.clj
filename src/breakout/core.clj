@@ -1,11 +1,12 @@
 (ns breakout.core
   (:use [breakout.world :only (screen-size)]
-        [breakout.components :only (game position renderable texture tag)]
+        [breakout.components :only (game position renderable texture tag keyboard)]
         [breakout.levels.one :as level]
         [breakout.lib.core :only (all-e add get-e)]
         [breakout.lib.macros :only (?)])
   (:require [breakout.systems.states :as states]
-            [breakout.ui.menu :as menu])
+            [breakout.ui.menu :as menu]
+            [breakout.systems.ui :as ui])
   (:import (org.lwjgl.opengl Display DisplayMode GL11)))
 
 (defn init []
@@ -21,9 +22,10 @@
     (GL11/glMatrixMode GL11/GL_PROJECTION)
     (GL11/glLoadIdentity)
     (GL11/glOrtho 0 x y 0 1 -1)
-    (GL11/glMatrixMode GL11/GL_MODELVIEW)
-    (add (game :menu 0))))
-
+    (GL11/glMatrixMode GL11/GL_MODELVIEW))
+    (add (merge (position 200 5)
+                (game :menu 0 3)
+                (keyboard ui/keyboard))))
 
 (defn finalise []
   (Display/destroy))
@@ -38,8 +40,12 @@
       (case (? (get-e g) :game :state)
         :menu
         (states/menu)
-      :running
+        :running
         (states/running)
-       :pause
-       (states/pause)))
+        :paused
+        (states/paused)
+        :win
+        (states/win)
+        :lose
+        (states/lose)))
     (finalise)))

@@ -2,7 +2,8 @@
   (:use [breakout.components]
         [breakout.lib.physics :as phys]
         [breakout.renderers]
-        [breakout.lib.core :only (add)]))
+        [breakout.lib.core :only (add)])
+  (:require [breakout.systems.moveable :as moveable]))
 
 (defn level []
   ; ball
@@ -11,6 +12,7 @@
               (velocity -3 3)
               (colour :red)
               (phys/simulate {:mass 1})
+              (tag :ball)
               (renderable render-ball)))
   ; ; paddle
   (add (merge (position 350 550)
@@ -21,7 +23,7 @@
               (destroyed? false)
               (phys/simulate {:mass 0})
               (paddle-actions)
-              (keyboard)))
+              (keyboard moveable/keyboard)))
   ; scenery
   (add (merge (position 0 50)
               (size 30 500)

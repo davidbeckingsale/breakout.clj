@@ -2,12 +2,12 @@
   (use [breakout.lib.macros :only (! ?)]
        [breakout.lib.input :only (key?)]))
 
-(defn keyboard [ents]
-  (doseq [e ents]
-    (! e :paddle-actions {:move-left false :move-right false})
-    (cond (key? :left)
+(defn keyboard [e keyState keyValue]
+  (! e :paddle-actions {:move-left false :move-right false})
+  (if keyState
+    (cond (= keyValue (key? :left))
           (! e :paddle-actions {:move-left true :move-right false})
-          (key? :right)
+          (= keyValue (key? :right))
           (! e :paddle-actions {:move-left false :move-right true}))))
 
 (defn move [ents]
