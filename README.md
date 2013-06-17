@@ -1,5 +1,7 @@
 # Breakout.clj
 
+![Breakout!](assets/breakout.png)
+
 A clojure breakout game using a [component-entity system][ces] and [LWJGL][lw].
 
 ## Usage
